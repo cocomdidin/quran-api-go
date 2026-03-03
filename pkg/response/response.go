@@ -1,7 +1,5 @@
 package response
 
-// TODO: implement — see issue #5
-//
 // All handlers must use these helpers. Never call c.JSON directly in handlers.
 //
 // Response formats:
@@ -14,20 +12,47 @@ package response
 //   response.BadRequest(c, "invalid lang")
 //   response.InternalError(c)
 
-import "github.com/gin-gonic/gin"
+import (
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+)
 
 func Success(c *gin.Context, data any) {
-	panic("not implemented")
+	success := gin.H{
+		"data":      data,
+		"timestamp": time.Now().UTC().Format(time.RFC3339), // This Should Return ISO 8601 Timestamp Format
+	}
+
+	c.JSON(http.StatusOK, success)
 }
 
 func NotFound(c *gin.Context, message string) {
-	panic("not implemented")
+	error := gin.H{
+		"error":     message,
+		"code":      "not found",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+
+	c.JSON(http.StatusNotFound, error)
 }
 
 func BadRequest(c *gin.Context, message string) {
-	panic("not implemented")
+	error := gin.H{
+		"error":     message,
+		"code":      "bad request",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+
+	c.JSON(http.StatusBadRequest, error)
 }
 
 func InternalError(c *gin.Context) {
-	panic("not implemented")
+	error := gin.H{
+		"code":      "internal server error",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+
+	c.JSON(http.StatusInternalServerError, error)
 }
