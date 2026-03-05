@@ -16,7 +16,6 @@ package validator
 import "quran-api-go/internal/domain"
 
 func ValidateLang(lang string) (string, error) {
-	// _ = domain.ErrInvalidLang // sentinel used as return value
 	if lang == "" {
 		return "id", nil
 	}
