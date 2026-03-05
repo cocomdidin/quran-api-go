@@ -4,21 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"quran-api-go/internal/database"
 	"quran-api-go/internal/domain"
 	"quran-api-go/internal/repository"
 	"testing"
+
+	_ "modernc.org/sqlite"
 )
 
-func setupTestDB(t *testing.T) *sql.DB {
-	t.Helper()
-
-	db, err := database.New(":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	createTable := `
+var createTableSurah = `
 	CREATE TABLE surahs (
         id INTEGER PRIMARY KEY,
         number INTEGER NOT NULL,
@@ -29,13 +22,7 @@ func setupTestDB(t *testing.T) *sql.DB {
         revelation_type TEXT NOT NULL
 	);`
 
-	_, err = db.Exec(createTable)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Seeding
-	seed := `
+var seedTableSurah = `
 	INSERT INTO surahs 
 	(id, number, name_arabic, name_latin, name_transliteration, number_of_ayahs, revelation_type)
 	VALUES
@@ -44,7 +31,20 @@ func setupTestDB(t *testing.T) *sql.DB {
 		(3, 3, 'آل عمران', 'Keluarga Imran', 'Ali ''Imran', 200, 'medinan'),
 		(4, 4, 'النساء', 'Wanita', 'An-Nisa', 176, 'medinan');`
 
-	_, err = db.Exec(seed)
+func setupTestDB(t *testing.T, queryTable string, querySeed string) *sql.DB {
+	t.Helper()
+
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = db.Exec(queryTable)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = db.Exec(querySeed)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,23 +53,23 @@ func setupTestDB(t *testing.T) *sql.DB {
 }
 
 func TestSurahRepository_FindAll(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupTestDB(t, createTableSurah, seedTableSurah)
 	repo := repository.NewSurahRepository(db)
 
 	ctx := context.Background()
 
-	users, err := repo.FindAll(ctx)
+	surahs, err := repo.FindAll(ctx)
 	if err != nil {
-		t.Fatalf("failed to get users: %v", err)
+		t.Fatalf("failed to get surahs: %v", err)
 	}
 
-	if len(users) != 4 {
-		t.Fatalf("expected 4 surahs, got %d", len(users))
+	if len(surahs) != 4 {
+		t.Fatalf("expected 4 surahs, got %d", len(surahs))
 	}
 }
 
 func TestSurahRepository_FindByID_Success(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupTestDB(t, createTableSurah, seedTableSurah)
 	repo := repository.NewSurahRepository(db)
 
 	ctx := context.Background()
@@ -89,7 +89,7 @@ func TestSurahRepository_FindByID_Success(t *testing.T) {
 }
 
 func TestSurahRepository_FindByID_NotFound(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupTestDB(t, createTableSurah, seedTableSurah)
 	repo := repository.NewSurahRepository(db)
 
 	ctx := context.Background()
