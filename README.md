@@ -71,9 +71,9 @@ docker run -p 8080:8080 -e ALLOWED_ORIGINS=https://yourapp.com quran-api-go
 curl http://localhost:8080/surah
 ```
 
-**Baca Ayah Spesifik:**
+**Baca Surah:**
 ```bash
-curl "http://localhost:8080/surah/1/ayah/1?lang=id"
+curl "http://localhost:8080/surah/1/ayah?lang=id"
 ```
 
 **Cari:**
