@@ -30,7 +30,7 @@ REST API Al-Quran Indonesia. Menyediakan 114 surah, 6.236 ayat, 30 juz dengan te
 ## Quick Start
 
 ```bash
-git clone https://github.com/quran-api-go/quran-api-go.git
+git clone https://github.com/Yayasan-Digital-Islami-Indonesia/quran-api-go.git
 cd quran-api-go
 go mod download
 make migrate && make seed && make run
@@ -52,8 +52,8 @@ docker run -p 8080:8080 -e ALLOWED_ORIGINS=https://yourapp.com quran-api-go
 |--------|----------|-----------|
 | GET | `/surah` | Daftar 114 surah |
 | GET | `/surah/:id` | Detail surah |
-| GET | `/surah/:id/ayat` | Ayat dalam surah |
-| GET | `/surah/:id/ayat/:number` | Ayat spesifik |
+| GET | `/surah/:id/ayah` | Ayat dalam surah |
+| GET | `/surah/:id/ayah/:number` | Ayat spesifik |
 | GET | `/ayah/:id` | Ayat by global ID (1-6236) |
 | GET | `/juz` | Daftar 30 juz |
 | GET | `/juz/:number` | Ayat dalam juz |
@@ -73,7 +73,7 @@ curl http://localhost:8080/surah
 
 **Baca Surah:**
 ```bash
-curl "http://localhost:8080/surah/1/ayat?lang=id"
+curl "http://localhost:8080/surah/1/ayah?lang=id"
 ```
 
 **Cari:**

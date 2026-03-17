@@ -50,6 +50,7 @@ func (a *AyahRepository) FindByID(ctx context.Context, id int) (*ayah.Ayah, erro
 
 		return nil, err
 	}
+
 	return &ayah, nil
 }
 

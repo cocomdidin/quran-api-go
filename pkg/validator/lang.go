@@ -1,6 +1,5 @@
 package validator
 
-// TODO: implement — see issue #12
 //
 // ValidateLang checks that lang is "id" or "en".
 // Returns "id" as the default when lang is empty.
@@ -16,6 +15,13 @@ package validator
 import "quran-api-go/internal/domain"
 
 func ValidateLang(lang string) (string, error) {
-	_ = domain.ErrInvalidLang // sentinel used as return value
-	panic("not implemented")
+	if lang == "" {
+		return "id", nil
+	}
+
+	if lang != "id" && lang != "en" {
+		return "", domain.ErrInvalidLang
+	}
+
+	return lang, nil
 }
