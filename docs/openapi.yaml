@@ -1,0 +1,584 @@
+openapi: 3.0.3
+info:
+  title: Quran API Go
+  description: |-
+    Internal RESTful API that serves Al-Quran data (Arabic text, Indonesian & English translations)
+    for the Ilmunara super app.
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Surah
+    description: Surah (chapter) endpoints
+  - name: Ayah
+    description: Ayah (verse) endpoints
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check if the API is running
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/HealthCheck'
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health/ready:
+    get:
+      tags:
+        - Health
+      summary: Readiness check
+      description: Check if the API is ready to serve requests (database connectivity)
+      operationId: readyCheck
+      responses:
+        '200':
+          description: API is ready
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/HealthCheck'
+        '503':
+          description: Service not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /surah:
+    get:
+      tags:
+        - Surah
+      summary: List all surahs
+      description: Get a list of all 114 surahs
+      operationId: listSurahs
+      responses:
+        '200':
+          description: List of surahs
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Surah'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /surah/{id}:
+    get:
+      tags:
+        - Surah
+      summary: Get surah by ID
+      description: Get detailed information about a specific surah
+      operationId: getSurahById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Surah ID (1-114)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 114
+      responses:
+        '200':
+          description: Surah details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Surah'
+        '400':
+          description: Invalid surah ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Surah not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /surah/{id}/ayah:
+    get:
+      tags:
+        - Ayah
+      summary: Get ayahs by surah
+      description: Get ayahs from a specific surah with optional range filtering
+      operationId: getAyahsBySurah
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Surah ID (1-114)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 114
+        - name: from
+          in: query
+          description: Start ayah number (must use with 'to')
+          schema:
+            type: integer
+            minimum: 1
+        - name: to
+          in: query
+          description: End ayah number (must use with 'from')
+          schema:
+            type: integer
+            minimum: 1
+        - name: lang
+          in: query
+          description: Translation language
+          schema:
+            type: string
+            enum: [id, en]
+            default: id
+      responses:
+        '200':
+          description: Surah ayahs
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SurahAyahsResponse'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Surah not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /surah/{id}/ayah/{number}:
+    get:
+      tags:
+        - Ayah
+      summary: Get ayah by surah and number
+      description: Get a specific ayah from a surah by its number within the surah
+      operationId: getAyahBySurahAndNumber
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Surah ID (1-114)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 114
+        - name: number
+          in: path
+          required: true
+          description: Ayah number within the surah
+          schema:
+            type: integer
+            minimum: 1
+        - name: lang
+          in: query
+          description: Translation language
+          schema:
+            type: string
+            enum: [id, en]
+            default: id
+      responses:
+        '200':
+          description: Ayah details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AyahDetailResponse'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Ayah or surah not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /ayah/{id}:
+    get:
+      tags:
+        - Ayah
+      summary: Get ayah by global ID
+      description: Get a specific ayah by its global ID across all surahs
+      operationId: getAyahById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Global ayah ID
+          schema:
+            type: integer
+            minimum: 1
+        - name: lang
+          in: query
+          description: Translation language
+          schema:
+            type: string
+            enum: [id, en]
+            default: id
+      responses:
+        '200':
+          description: Ayah details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AyahDetailResponse'
+        '400':
+          description: Invalid ayah ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Ayah or surah not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /random:
+    get:
+      tags:
+        - Ayah
+      summary: Get random ayah
+      description: Get a random ayah, optionally filtered by surah
+      operationId: getRandomAyah
+      parameters:
+        - name: surah_id
+          in: query
+          description: Filter by surah ID (0 = random from all surahs)
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: lang
+          in: query
+          description: Translation language
+          schema:
+            type: string
+            enum: [id, en]
+            default: id
+      responses:
+        '200':
+          description: Random ayah
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AyahDetailResponse'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No ayah found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    SuccessResponse:
+      type: object
+      required:
+        - data
+        - timestamp
+      properties:
+        data:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp in UTC
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - code
+        - timestamp
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          description: Machine-readable error code
+          enum:
+            - bad request
+            - not found
+            - internal server error
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp in UTC
+
+    HealthCheck:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        db_status:
+          type: string
+          example: connected
+        version:
+          type: string
+          example: 1.0.0
+
+    Surah:
+      type: object
+      required:
+        - id
+        - number
+        - name_arabic
+        - name_latin
+        - name_transliteration
+        - number_of_ayahs
+        - revelation_type
+      properties:
+        id:
+          type: integer
+          minimum: 1
+          maximum: 114
+          example: 1
+        number:
+          type: integer
+          minimum: 1
+          maximum: 114
+          example: 1
+        name_arabic:
+          type: string
+          example: الفاتحة
+        name_latin:
+          type: string
+          example: Al-Fatihah
+        name_transliteration:
+          type: string
+          example: Al-Faatihah
+        number_of_ayahs:
+          type: integer
+          minimum: 3
+          example: 7
+        revelation_type:
+          type: string
+          enum: [Meccan, Medinan]
+          example: Meccan
+
+    AyahDetailResponse:
+      type: object
+      required:
+        - id
+        - number
+        - surah_id
+        - number_in_surah
+        - text_uthmani
+        - translation
+        - surah_info
+        - juz
+      properties:
+        id:
+          type: integer
+          example: 1
+        number:
+          type: integer
+          example: 1
+        surah_id:
+          type: integer
+          minimum: 1
+          maximum: 114
+          example: 1
+        number_in_surah:
+          type: integer
+          minimum: 1
+          example: 1
+        text_uthmani:
+          type: string
+          example: بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
+        translation:
+          type: string
+          example: Dengan nama Allah Yang Maha Pengasih, Maha Penyayang.
+        surah_info:
+          type: object
+          required:
+            - id
+            - name_latin
+          properties:
+            id:
+              type: integer
+              example: 1
+            name_latin:
+              type: string
+              example: Al-Fatihah
+        juz:
+          type: integer
+          minimum: 1
+          maximum: 30
+          example: 1
+        sajda:
+          type: string
+          nullable: true
+          description: Sajda type if present
+          example: min
+        revelation_type:
+          type: string
+          nullable: true
+          example: Meccan
+
+    SurahAyahsResponse:
+      type: object
+      required:
+        - surah
+        - ayahs
+      properties:
+        surah:
+          type: object
+          required:
+            - id
+            - number
+            - name_latin
+          properties:
+            id:
+              type: integer
+              example: 1
+            number:
+              type: integer
+              example: 1
+            name_latin:
+              type: string
+              example: Al-Fatihah
+        ayahs:
+          type: array
+          items:
+            type: object
+            required:
+              - number
+              - number_in_surah
+              - text_uthmani
+              - translation
+              - juz
+            properties:
+              number:
+                type: integer
+                example: 1
+              number_in_surah:
+                type: integer
+                example: 1
+              text_uthmani:
+                type: string
+                example: بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
+              translation:
+                type: string
+                example: Dengan nama Allah Yang Maha Pengasih, Maha Penyayang.
+              juz:
+                type: integer
+                example: 1
+              sajda:
+                type: string
+                nullable: true
+                example: min

@@ -46,6 +46,13 @@ func main() {
 	ayahRepo := repository.NewAyahRepository(db)
 	ayahService := service.NewAyahService(ayahRepo)
 	ayahHandler := handler.NewAyahHandler(ayahService, surahService)
+	juzRepo := repository.NewJuzRepository(db)
+	juzService := service.NewJuzService(juzRepo)
+	juzHandler := handler.NewJuzHandler(juzService)
+	searchRepo := repository.NewSearchRepository(db)
+	searchService := service.NewSearchService(searchRepo)
+	searchHandler := handler.NewSearchHandler(searchService)
+	docsHandler := handler.NewDocsHandler()
 
 	r.GET("/health", healthCheckHandler.HealthCheck)
 	r.GET("/health/ready", healthCheckHandler.ReadyCheck)
@@ -55,6 +62,15 @@ func main() {
 	r.GET("/surah/:id/ayah", ayahHandler.BySurah)
 	r.GET("/surah/:id/ayah/:number", ayahHandler.BySurahAndNumber)
 	r.GET("/random", ayahHandler.RandomAyah)
+	r.GET("/juz", juzHandler.List)
+	r.GET("/juz/:number", juzHandler.Detail)
+	r.GET("/juz/:number/ayah", juzHandler.Ayahs)
+	r.GET("/search", searchHandler.Search)
+
+	// Documentation
+	r.GET("/docs", docsHandler.ServeDocs)
+	r.GET("/openapi.yaml", docsHandler.ServeOpenAPI)
+	r.GET("/static/:filename", docsHandler.ServeStatic)
 
 	addr := fmt.Sprintf("%s:%s", cfg.ServerHost, cfg.ServerPort)
 	log.Info().Str("addr", addr).Msg("starting server")
