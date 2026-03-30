@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"quran-api-go/internal/domain/healthcheck"
+	"quran-api-go/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,19 +17,19 @@ func NewHealthCheckHandler(service healthcheck.HealthCheckService) *HealthCheckH
 }
 
 func (h *HealthCheckHandler) HealthCheck(c *gin.Context) {
-	health, err := h.service.HealthCheck(c)
+	health, err := h.service.HealthCheck(c.Request.Context())
 	if err != nil {
 		c.AbortWithStatus(http.StatusServiceUnavailable)
 		return
 	}
-	c.JSON(http.StatusOK, health)
+	response.Success(c, health)
 }
 
 func (h *HealthCheckHandler) ReadyCheck(c *gin.Context) {
-	ready, err := h.service.ReadyCheck(c)
+	ready, err := h.service.ReadyCheck(c.Request.Context())
 	if err != nil {
 		c.AbortWithStatus(http.StatusServiceUnavailable)
 		return
 	}
-	c.JSON(http.StatusOK, ready)
+	response.Success(c, ready)
 }

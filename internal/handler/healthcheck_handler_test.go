@@ -57,9 +57,13 @@ func TestHealthCheckHandler_HealthCheck_Success(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	status := body["status"]
+	data, ok := body["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected data field, got %v", body["data"])
+	}
+	status := data["status"]
 	if status != "OK" {
-		t.Fatalf("expected status field, got %v", body["status"])
+		t.Fatalf("expected status=OK, got %v", status)
 	}
 }
 
@@ -84,8 +88,12 @@ func TestHealthCheckHandler_ReadyCheck_Success(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	status := body["db_status"]
-	if status != "OK" {
-		t.Fatalf("expected status field, got %v", body["status"])
+	data, ok := body["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected data field, got %v", body["data"])
+	}
+	dbStatus := data["db_status"]
+	if dbStatus != "OK" {
+		t.Fatalf("expected db_status=OK, got %v", dbStatus)
 	}
 }

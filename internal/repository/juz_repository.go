@@ -3,110 +3,111 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"errors"
 
-	juz "quran-api-go/internal/domain/juz"
+	"quran-api-go/internal/domain"
+	"quran-api-go/internal/domain/juz"
 )
 
-// JuzRepository is the SQLite implementation of juz.JuzRepository.
-type JuzRepository struct {
+type juzRepository struct {
 	db *sql.DB
 }
 
-// NewJuzRepository creates a new JuzRepository backed by the given database.
 func NewJuzRepository(db *sql.DB) juz.JuzRepository {
-	return &JuzRepository{db: db}
+	return &juzRepository{db: db}
 }
 
-// FindAll returns all 30 juz entries ordered by juz_number.
-func (r *JuzRepository) FindAll(ctx context.Context) ([]juz.Juz, error) {
-	query := `SELECT id, juz_number, first_ayah_id, last_ayah_id
-		FROM juzs
-		ORDER BY juz_number`
+func (r *juzRepository) FindAll(ctx context.Context) ([]juz.Juz, error) {
+	query := `
+		SELECT j.id, j.juz_number, j.first_ayah_id, j.last_ayah_id,
+		       COUNT(a.id) as total_ayahs
+		FROM juzs j
+		LEFT JOIN ayahs a ON a.juz_number = j.juz_number
+		GROUP BY j.id
+		ORDER BY j.juz_number ASC
+	`
 
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("juz FindAll: %w", err)
+		return nil, err
 	}
 	defer rows.Close()
 
 	var juzs []juz.Juz
 	for rows.Next() {
 		var j juz.Juz
-		if err := rows.Scan(&j.ID, &j.JuzNumber, &j.FirstAyahID, &j.LastAyahID); err != nil {
-			return nil, fmt.Errorf("juz FindAll scan: %w", err)
+		if err := rows.Scan(&j.ID, &j.JuzNumber, &j.FirstAyahID, &j.LastAyahID, &j.TotalAyahs); err != nil {
+			return nil, err
 		}
 		juzs = append(juzs, j)
 	}
+
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("juz FindAll rows: %w", err)
+		return nil, err
 	}
 
 	return juzs, nil
 }
 
-// FindByNumber returns a single juz by its number. Returns nil, nil when not found.
-func (r *JuzRepository) FindByNumber(ctx context.Context, number int) (*juz.Juz, error) {
-	query := `SELECT id, juz_number, first_ayah_id, last_ayah_id
-		FROM juzs
-		WHERE juz_number = ?`
+func (r *juzRepository) FindByNumber(ctx context.Context, number int) (*juz.Juz, error) {
+	query := `
+		SELECT j.id, j.juz_number, j.first_ayah_id, j.last_ayah_id,
+		       COUNT(a.id) as total_ayahs
+		FROM juzs j
+		LEFT JOIN ayahs a ON a.juz_number = j.juz_number
+		WHERE j.juz_number = ?
+		GROUP BY j.id
+	`
 
 	var j juz.Juz
-	err := r.db.QueryRowContext(ctx, query, number).
-		Scan(&j.ID, &j.JuzNumber, &j.FirstAyahID, &j.LastAyahID)
+	err := r.db.QueryRowContext(ctx, query, number).Scan(&j.ID, &j.JuzNumber, &j.FirstAyahID, &j.LastAyahID, &j.TotalAyahs)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, domain.ErrNotFound
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("juz FindByNumber: %w", err)
+		return nil, err
 	}
 
 	return &j, nil
 }
 
-// FindAyahsByJuz returns ayahs belonging to the given juz, joined with surah
-// name_latin. Results are paginated via limit/offset and ordered by ayah id.
-func (r *JuzRepository) FindAyahsByJuz(ctx context.Context, juzNumber, limit, offset int) ([]juz.JuzAyah, error) {
-	query := `SELECT
-			a.id,
-			a.surah_id,
-			s.name_latin,
-			a.number_in_surah,
-			a.text_uthmani,
-			a.translation_indo,
-			a.translation_en,
-			a.juz_number
+func (r *juzRepository) FindAyahsByJuz(ctx context.Context, juzNumber, limit, offset int) ([]juz.JuzAyah, error) {
+	query := `
+		SELECT a.id, a.surah_id, s.name_latin, a.number_in_surah,
+			   a.text_uthmani, a.translation_indo, a.translation_en, a.juz_number
 		FROM ayahs a
-		JOIN surahs s ON s.id = a.surah_id
+		INNER JOIN surahs s ON a.surah_id = s.id
 		WHERE a.juz_number = ?
-		ORDER BY a.id
-		LIMIT ? OFFSET ?`
+		ORDER BY a.id ASC
+		LIMIT ? OFFSET ?
+	`
 
 	rows, err := r.db.QueryContext(ctx, query, juzNumber, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("juz FindAyahsByJuz: %w", err)
+		return nil, err
 	}
 	defer rows.Close()
 
 	var ayahs []juz.JuzAyah
 	for rows.Next() {
-		var ja juz.JuzAyah
+		var a juz.JuzAyah
 		if err := rows.Scan(
-			&ja.AyahID,
-			&ja.SurahID,
-			&ja.SurahNameLatin,
-			&ja.NumberInSurah,
-			&ja.TextUthmani,
-			&ja.TranslationIdo,
-			&ja.TranslationEn,
-			&ja.JuzNumber,
+			&a.AyahID,
+			&a.SurahID,
+			&a.SurahNameLatin,
+			&a.NumberInSurah,
+			&a.TextUthmani,
+			&a.TranslationIdo,
+			&a.TranslationEn,
+			&a.JuzNumber,
 		); err != nil {
-			return nil, fmt.Errorf("juz FindAyahsByJuz scan: %w", err)
+			return nil, err
 		}
-		ayahs = append(ayahs, ja)
+		ayahs = append(ayahs, a)
 	}
+
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("juz FindAyahsByJuz rows: %w", err)
+		return nil, err
 	}
 
 	return ayahs, nil
